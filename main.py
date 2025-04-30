@@ -1,13 +1,24 @@
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, ttk
 from database import listar_clientes, consultar_cliente, agregar_cliente, modificar_cliente, borrar_cliente
+
+def es_dni_valido(dni):
+    """Verifica si el DNI es válido y no está duplicado en la base de datos."""
+    if len(dni) != 8 or not dni.isdigit():
+        return False
+
+    clientes = listar_clientes()
+    for cliente in clientes:
+        if cliente.dni == dni:
+            return False
+
+    return True
 
 class MainApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Gestor de Clientes")
         
-        # Widgets
         self.label_dni = tk.Label(root, text="DNI:")
         self.label_dni.grid(row=0, column=0)
         self.entry_dni = tk.Entry(root)
@@ -23,8 +34,11 @@ class MainApp:
         self.entry_apellido = tk.Entry(root)
         self.entry_apellido.grid(row=2, column=1)
 
-        self.listbox = tk.Listbox(root, width=50)
-        self.listbox.grid(row=3, column=0, columnspan=2)
+        self.tree = ttk.Treeview(root, columns=("DNI", "Nombre", "Apellido"), show="headings")
+        self.tree.heading("DNI", text="DNI")
+        self.tree.heading("Nombre", text="Nombre")
+        self.tree.heading("Apellido", text="Apellido")
+        self.tree.grid(row=3, column=0, columnspan=2, sticky="nsew")
 
         self.button_listar = tk.Button(root, text="Listar Clientes", command=self.listar_clientes)
         self.button_listar.grid(row=4, column=0)
@@ -38,17 +52,25 @@ class MainApp:
         self.button_borrar = tk.Button(root, text="Borrar Cliente", command=self.borrar_cliente)
         self.button_borrar.grid(row=5, column=1)
 
+        self.listar_clientes()
+
     def listar_clientes(self):
-        """List all clients in the Listbox."""
-        self.listbox.delete(0, tk.END)
+        """Populate the Treeview with clients from the database."""
+        for row in self.tree.get_children():
+            self.tree.delete(row)
         for cliente in listar_clientes():
-            self.listbox.insert(tk.END, f"{cliente.dni} - {cliente.nombre} {cliente.apellido}")
+            self.tree.insert("", "end", values=(cliente.dni, cliente.nombre, cliente.apellido))
 
     def agregar_cliente(self):
         """Add a new client."""
         dni = self.entry_dni.get()
         nombre = self.entry_nombre.get()
         apellido = self.entry_apellido.get()
+
+        if not es_dni_valido(dni):
+            messagebox.showerror("Error", "El DNI debe tener 8 dígitos, solo contener números y no estar duplicado.")
+            return
+
         try:
             agregar_cliente(nombre, apellido, dni)
             messagebox.showinfo("Éxito", "Cliente agregado correctamente.")
@@ -61,6 +83,11 @@ class MainApp:
         dni = self.entry_dni.get()
         nuevo_nombre = self.entry_nombre.get()
         nuevo_apellido = self.entry_apellido.get()
+
+        if not es_dni_valido(dni):
+            messagebox.showerror("Error", "El DNI debe tener 8 dígitos y solo contener números.")
+            return
+
         try:
             modificar_cliente(dni, nuevo_nombre, nuevo_apellido)
             messagebox.showinfo("Éxito", "Cliente modificado correctamente.")
