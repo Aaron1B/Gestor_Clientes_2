@@ -1,18 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
-from database import listar_clientes, consultar_cliente, agregar_cliente, modificar_cliente, borrar_cliente
-
-def es_dni_valido(dni):
-    """Verifica si el DNI es válido y no está duplicado en la base de datos."""
-    if len(dni) != 8 or not dni.isdigit():
-        return False
-
-    clientes = listar_clientes()
-    for cliente in clientes:
-        if cliente.dni == dni:
-            return False
-
-    return True
+from database import listar_clientes, agregar_cliente, modificar_cliente, borrar_cliente
+from helpers import DNIHelper
 
 class MainApp:
     def __init__(self, root):
@@ -55,20 +44,22 @@ class MainApp:
         self.listar_clientes()
 
     def listar_clientes(self):
-        """Populate the Treeview with clients from the database."""
         for row in self.tree.get_children():
             self.tree.delete(row)
         for cliente in listar_clientes():
             self.tree.insert("", "end", values=(cliente.dni, cliente.nombre, cliente.apellido))
 
     def agregar_cliente(self):
-        """Add a new client."""
         dni = self.entry_dni.get()
         nombre = self.entry_nombre.get()
         apellido = self.entry_apellido.get()
 
-        if not es_dni_valido(dni):
-            messagebox.showerror("Error", "El DNI debe tener 8 dígitos, solo contener números y no estar duplicado.")
+        if not DNIHelper.es_dni_valido(dni):
+            messagebox.showerror("Error", "El DNI debe tener 8 dígitos y solo contener números.")
+            return
+
+        if not DNIHelper.es_dni_unico(dni):
+            messagebox.showerror("Error", "El DNI ya está registrado.")
             return
 
         try:
@@ -79,12 +70,11 @@ class MainApp:
             messagebox.showerror("Error", str(e))
 
     def modificar_cliente(self):
-        """Modify an existing client."""
         dni = self.entry_dni.get()
         nuevo_nombre = self.entry_nombre.get()
         nuevo_apellido = self.entry_apellido.get()
 
-        if not es_dni_valido(dni):
+        if not DNIHelper.es_dni_valido(dni):
             messagebox.showerror("Error", "El DNI debe tener 8 dígitos y solo contener números.")
             return
 
@@ -96,7 +86,6 @@ class MainApp:
             messagebox.showerror("Error", str(e))
 
     def borrar_cliente(self):
-        """Delete a client."""
         dni = self.entry_dni.get()
         try:
             borrar_cliente(dni)
